@@ -41,7 +41,7 @@ namespace SmartInventoryManagement
                 // Configure Kestrel to explicitly listen on port 5002
                 builder.WebHost.ConfigureKestrel(serverOptions =>
                 {
-                    serverOptions.ListenAnyIP(5002);
+                    serverOptions.ListenLocalhost(5002);
                 });
 
                 // Add services to the container.
@@ -52,12 +52,23 @@ namespace SmartInventoryManagement
                 if (string.IsNullOrEmpty(connectionString))
                 {
                     // Use a default SQLite connection string if none is provided
-                    connectionString = "Data Source=|DataDirectory|/SmartInventory.db";
+                    connectionString = "Data Source=SmartInventory.db";
                     Log.Information("Using default SQLite connection string");
                 }
                 else
                 {
-                    Log.Information("Using connection string from configuration");
+                    // If using |DataDirectory| placeholder, make sure it's properly resolved
+                    if (connectionString.Contains("|DataDirectory|"))
+                    {
+                        // For local development, replace |DataDirectory| with the App_Data folder
+                        var appData = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data");
+                        connectionString = connectionString.Replace("|DataDirectory|", appData);
+                        Log.Information($"Resolved DataDirectory in connection string: {connectionString}");
+                    }
+                    else
+                    {
+                        Log.Information($"Using connection string from configuration: {connectionString}");
+                    }
                 }
 
                 // Configure to use SQLite instead of PostgreSQL
