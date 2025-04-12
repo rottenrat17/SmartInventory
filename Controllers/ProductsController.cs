@@ -230,6 +230,7 @@ namespace SmartInventoryManagement.Controllers
         }
 
         // AJAX: Products/SearchProducts
+        // This method handles searching products via AJAX requests.
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> SearchProducts(string searchTerm, int? categoryId, decimal? minPrice, decimal? maxPrice)
