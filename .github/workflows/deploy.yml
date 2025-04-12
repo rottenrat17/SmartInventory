@@ -1,4 +1,4 @@
-name: Deploy to Azure
+name: Build and deploy ASP.Net Core app to Azure Web App
 
 on:
   push:
@@ -10,27 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
     - name: Set up .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
 
-    - name: Build with dotnet
+    - name: Build project
       run: dotnet build --configuration Release
 
     - name: Publish project
-      run: dotnet publish -c Release -o ./publish
-
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      run: dotnet publish -c Release -o ${{github.workspace}}/publish
 
     - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
+      uses: azure/webapps-deploy@v3
       with:
         app-name: 'SmartInventoryLite'
-        slot-name: 'production'
-        package: ./publish 
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ${{github.workspace}}/publish 
