@@ -136,13 +136,56 @@ namespace SmartInventoryManagement
                         dbContext.Database.EnsureCreated();
                         Log.Information("Database created or already exists");
 
-                        // Initialize roles
+                        // Initialize roles and users directly instead of using the service
                         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                        var roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
+                        
+                        // Create roles if they don't exist
+                        string[] roleNames = { "Admin", "User" };
+                        foreach (var roleName in roleNames)
+                        {
+                            if (!await roleManager.RoleExistsAsync(roleName))
+                            {
+                                await roleManager.CreateAsync(new IdentityRole(roleName));
+                                Log.Information($"Created role: {roleName}");
+                            }
+                        }
+                        
+                        // Create admin user if it doesn't exist
+                        var adminEmail = "pokhrelpratik71@gmail.com";
+                        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                        if (adminUser == null)
+                        {
+                            adminUser = new ApplicationUser
+                            {
+                                UserName = adminEmail,
+                                Email = adminEmail,
+                                EmailConfirmed = true,
+                                FirstName = "Admin",
+                                LastName = "User"
+                            };
 
-                        await roleInitializer.InitializeRolesAsync(roleManager);
-                        await roleInitializer.InitializeAdminUserAsync(userManager);
+                            // Create the admin user with the specified password
+                            var result = await userManager.CreateAsync(adminUser, "gaFk7Udp?q1");
+                            if (result.Succeeded)
+                            {
+                                await userManager.AddToRoleAsync(adminUser, "Admin");
+                                Log.Information($"Created admin user: {adminEmail}");
+                            }
+                            else
+                            {
+                                foreach (var error in result.Errors)
+                                {
+                                    Log.Error($"Error creating admin user: {error.Description}");
+                                }
+                            }
+                        }
+                        else if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+                        {
+                            // If user exists but not in Admin role, add them to Admin role
+                            await userManager.AddToRoleAsync(adminUser, "Admin");
+                            Log.Information($"Added existing user to Admin role: {adminEmail}");
+                        }
                     }
                     catch (Exception ex)
                     {
