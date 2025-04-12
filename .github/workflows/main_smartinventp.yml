@@ -55,4 +55,4 @@ jobs:
           app-name: 'smartinventp'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_05E5B76AAE1D4CAF9A0641C68FE1CD44 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_509E669683BE48A8A769683F49BFC0A9 }}
