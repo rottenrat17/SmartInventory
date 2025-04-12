@@ -9,7 +9,7 @@ namespace SmartInventoryManagement.Services
     public class MailerSendEmailService : IEmailService
     {
         private readonly ILogger<MailerSendEmailService> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly IConfiguration? _configuration;
         private readonly string _fromEmail;
         private readonly string _fromName;
         private readonly string _host;
@@ -36,8 +36,8 @@ namespace SmartInventoryManagement.Services
         // Constructor for testing
         protected MailerSendEmailService(ILogger<MailerSendEmailService> logger)
         {
-            _logger = logger;
-            _configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = null;
             _fromEmail = "test@example.com";
             _fromName = "Test Sender";
             _host = "localhost";

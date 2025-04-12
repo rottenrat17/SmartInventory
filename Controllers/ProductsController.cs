@@ -280,7 +280,7 @@ namespace SmartInventoryManagement.Controllers
                     p.Name,
                     p.Price,
                     p.StockQuantity,
-                    CategoryName = p.Category == null ? "No Category" : p.Category.Name, // Perform null check here
+                    CategoryName = p.Category?.Name ?? "No Category", // Use null conditional operator
                     p.LowStockThreshold
                 }).ToList();
 
