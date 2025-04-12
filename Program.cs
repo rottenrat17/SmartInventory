@@ -4,7 +4,6 @@ using SmartInventoryManagement.Database;
 using SmartInventoryManagement.Models;
 using SmartInventoryManagement.Services;
 using SmartInventoryManagement.Middleware;
-using Npgsql;
 using Serilog;
 using Serilog.Events;
 
@@ -27,10 +26,6 @@ namespace SmartInventoryManagement
 
                 Log.Information("Starting up application...");
 
-                // Configure Npgsql to use UTC DateTime for PostgreSQL
-                AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-                AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
-
                 var builder = WebApplication.CreateBuilder(args);
 
                 // Configure Kestrel to explicitly listen on port 5002
@@ -42,57 +37,45 @@ namespace SmartInventoryManagement
                 // Add services to the container.
                 builder.Services.AddControllersWithViews();
 
-                // Configure database
-                var connectionString = Environment.GetEnvironmentVariable("AZURE_POSTGRESQL_CONNECTIONSTRING");
-                
+                // Configure database with SQLite
+                var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-                    Log.Information("Using connection string from configuration");
+                    // Use a default SQLite connection string if none is provided
+                    connectionString = "Data Source=SmartInventory.db";
+                    Log.Information("Using default SQLite connection string");
                 }
                 else
                 {
-                    Log.Information("Using connection string from environment variable");
-                }
-                
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    Log.Error("No valid connection string found. Please check your configuration.");
-                    throw new InvalidOperationException("No valid database connection string found.");
+                    Log.Information("Using connection string from configuration");
                 }
 
-                // Don't log connection string details for security
-                Log.Information("Database connection configured");
-
+                // Configure to use SQLite instead of PostgreSQL
                 builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseNpgsql(connectionString, npgsqlOptions =>
-                    {
-                        npgsqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 5,
-                            maxRetryDelay: TimeSpan.FromSeconds(30),
-                            errorCodesToAdd: null);
-                    });
+                    options.UseSqlite(connectionString);
                 });
 
                 // Register Email Service
                 builder.Services.AddTransient<IEmailService, MailerSendEmailService>();
 
                 // Add Identity services
-                builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
+                builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+                {
                     options.SignIn.RequireConfirmedAccount = true;
+                    options.User.RequireUniqueEmail = true;
                     options.Password.RequireDigit = true;
                     options.Password.RequireLowercase = true;
-                    options.Password.RequireNonAlphanumeric = true;
                     options.Password.RequireUppercase = true;
+                    options.Password.RequireNonAlphanumeric = true;
                     options.Password.RequiredLength = 8;
-                    options.User.RequireUniqueEmail = true;
                 })
-                .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders();
+                    .AddEntityFrameworkStores<ApplicationDbContext>()
+                    .AddDefaultTokenProviders();
 
-                // Configure cookie settings
-                builder.Services.ConfigureApplicationCookie(options => {
+                // Configure Identity Cookie settings
+                builder.Services.ConfigureApplicationCookie(options =>
+                {
                     options.LoginPath = "/Account/Login";
                     options.LogoutPath = "/Account/Logout";
                     options.AccessDeniedPath = "/Account/AccessDenied";
@@ -100,115 +83,54 @@ namespace SmartInventoryManagement
                     options.ExpireTimeSpan = TimeSpan.FromDays(7);
                 });
 
-                // Configure Identity token lifespan
-                builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
-                {
-                    options.TokenLifespan = TimeSpan.FromHours(24);
-                });
-
-                // Add Serilog
-                builder.Host.UseSerilog();
+                // Add services to DI container
+                builder.Services.AddScoped<RoleInitializationService>();
 
                 var app = builder.Build();
 
                 // Configure the HTTP request pipeline.
-                if (!app.Environment.IsDevelopment())
-                {
-                    app.UseExceptionHandler("/Error");
-                    app.UseStatusCodePagesWithReExecute("/Error/{0}");
-                    app.UseHsts();
-                }
-                else
+                if (app.Environment.IsDevelopment())
                 {
                     app.UseDeveloperExceptionPage();
                 }
+                else
+                {
+                    app.UseExceptionHandler("/Error/Error");
+                    app.UseStatusCodePagesWithReExecute("/Error/{0}");
+                    app.UseHsts();
+                }
+
+                // Use the custom exception handling middleware
+                app.UseMiddleware<ExceptionHandlingMiddleware>();
 
                 app.UseHttpsRedirection();
                 app.UseStaticFiles();
+
                 app.UseRouting();
 
                 app.UseAuthentication();
                 app.UseAuthorization();
 
-                // Add custom exception handling middleware
-                app.UseMiddleware<ExceptionHandlingMiddleware>();
-
                 app.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-                // Ensure database exists and apply migrations
-                try
+                // Ensure the database is created and apply migrations
+                using (var scope = app.Services.CreateScope())
                 {
-                    using (var scope = app.Services.CreateScope())
-                    {
-                        var services = scope.ServiceProvider;
-                        var context = services.GetRequiredService<ApplicationDbContext>();
-                        
-                        Log.Information("Ensuring database exists and is up to date...");
-                        
-                        // Check if database exists
-                        bool dbExists = await context.Database.CanConnectAsync();
-                        
-                        if (!dbExists)
-                        {
-                            Log.Information("Database does not exist. Creating database...");
-                            await context.Database.EnsureCreatedAsync();
-                        }
-                        else
-                        {
-                            Log.Information("Database already exists. Checking for pending migrations...");
-                            if ((await context.Database.GetPendingMigrationsAsync()).Any())
-                            {
-                                Log.Information("Applying pending migrations...");
-                                await context.Database.MigrateAsync();
-                            }
-                        }
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    // Create the database if it doesn't exist
+                    dbContext.Database.EnsureCreated();
 
-                        // Initialize roles
-                        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+                    // Initialize roles
+                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                    var roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
 
-                        // Create roles if they don't exist
-                        string[] roles = { "Admin", "User" };
-                        foreach (var role in roles)
-                        {
-                            if (!await roleManager.RoleExistsAsync(role))
-                            {
-                                await roleManager.CreateAsync(new IdentityRole(role));
-                                Log.Information("Created role: {Role}", role);
-                            }
-                        }
-
-                        // Create admin user if it doesn't exist
-                        var adminEmail = "admin@example.com";
-                        var adminUser = await userManager.FindByEmailAsync(adminEmail);
-                        if (adminUser == null)
-                        {
-                            adminUser = new ApplicationUser
-                            {
-                                UserName = adminEmail,
-                                Email = adminEmail,
-                                EmailConfirmed = true,
-                                FirstName = "Admin",
-                                LastName = "User"
-                            };
-                            var result = await userManager.CreateAsync(adminUser, "Admin123!");
-                            if (result.Succeeded)
-                            {
-                                await userManager.AddToRoleAsync(adminUser, "Admin");
-                                Log.Information("Created admin user: {Email}", adminEmail);
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "An error occurred while initializing the database");
-                    throw;
+                    await roleInitializer.InitializeRolesAsync(roleManager);
+                    await roleInitializer.InitializeAdminUserAsync(userManager);
                 }
 
-                Log.Information("Application startup complete. Running the application...");
                 app.Run();
             }
             catch (Exception ex)
