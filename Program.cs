@@ -6,6 +6,7 @@ using SmartInventoryManagement.Services;
 using SmartInventoryManagement.Middleware;
 using Serilog;
 using Serilog.Events;
+using System.IO;
 
 namespace SmartInventoryManagement
 {
@@ -26,6 +27,15 @@ namespace SmartInventoryManagement
 
                 Log.Information("Starting up application...");
 
+                // Set DataDirectory to a persistent folder in Azure
+                string dataDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "App_Data");
+                if (!Directory.Exists(dataDirectory))
+                {
+                    Directory.CreateDirectory(dataDirectory);
+                }
+                AppDomain.CurrentDomain.SetData("DataDirectory", dataDirectory);
+                Log.Information($"DataDirectory set to: {dataDirectory}");
+
                 var builder = WebApplication.CreateBuilder(args);
 
                 // Configure Kestrel to explicitly listen on port 5002
@@ -42,7 +52,7 @@ namespace SmartInventoryManagement
                 if (string.IsNullOrEmpty(connectionString))
                 {
                     // Use a default SQLite connection string if none is provided
-                    connectionString = "Data Source=SmartInventory.db";
+                    connectionString = "Data Source=|DataDirectory|/SmartInventory.db";
                     Log.Information("Using default SQLite connection string");
                 }
                 else
@@ -119,16 +129,25 @@ namespace SmartInventoryManagement
                 using (var scope = app.Services.CreateScope())
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    // Create the database if it doesn't exist
-                    dbContext.Database.EnsureCreated();
+                    try
+                    {
+                        // Create the database if it doesn't exist
+                        Log.Information("Attempting to create database if it doesn't exist");
+                        dbContext.Database.EnsureCreated();
+                        Log.Information("Database created or already exists");
 
-                    // Initialize roles
-                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                    var roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
+                        // Initialize roles
+                        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                        var roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
 
-                    await roleInitializer.InitializeRolesAsync(roleManager);
-                    await roleInitializer.InitializeAdminUserAsync(userManager);
+                        await roleInitializer.InitializeRolesAsync(roleManager);
+                        await roleInitializer.InitializeAdminUserAsync(userManager);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Error setting up database");
+                    }
                 }
 
                 app.Run();
