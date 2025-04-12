@@ -59,7 +59,7 @@ namespace MyTestProject
             // Arrange
             var product = new Product
             {
-                Name = null,
+                Name = "",
                 Price = 10.99m,
                 StockQuantity = 20
             };

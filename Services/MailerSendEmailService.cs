@@ -37,6 +37,7 @@ namespace SmartInventoryManagement.Services
         protected MailerSendEmailService(ILogger<MailerSendEmailService> logger)
         {
             _logger = logger;
+            _configuration = null;  // Now this is allowed because _configuration is nullable
             _fromEmail = "test@example.com";
             _fromName = "Test Sender";
             _host = "localhost";
