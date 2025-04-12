@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "Track Order";
+}
+
+<h1>Track Your Order</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Enter Order Details</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Track" method="post">
+                    <div class="mb-3">
+                        <label for="orderNumber" class="form-label">Order Number</label>
+                        <input type="text" id="orderNumber" name="orderNumber" class="form-control" 
+                               placeholder="e.g., ORD-20240215-1234" required />
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary">Track Order</button>
+                    </div>
+                </form>
+                @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+                {
+                    <div class="alert alert-danger mt-3">
+                        @ViewBag.ErrorMessage
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Need Help?</h5>
+            </div>
+            <div class="card-body">
+                <p>To track your order, you'll need the order number that was provided when you placed your order.</p>
+                <p>The order number format is: <code>ORD-YYYYMMDD-XXXX</code></p>
+                <p>If you've lost your order number, please contact customer support for assistance.</p>
+            </div>
+        </div>
+    </div>
+</div>

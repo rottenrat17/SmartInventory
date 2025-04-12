@@ -1,0 +1,77 @@
+@model SmartInventoryManagement.ViewModels.TwoFactorAuthenticationViewModel
+
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4>Two-Factor Authentication</h4>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Is2faEnabled)
+                    {
+                        <div class="alert alert-warning">
+                            <strong>Two-factor authentication is not enabled.</strong>
+                            <p>
+                                Two-factor authentication adds an extra layer of security to your account by requiring more than just a password.
+                                With 2FA enabled, you'll be asked for an additional verification code when you sign in.
+                            </p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <a href="#" class="btn btn-primary disabled">
+                                <i class="bi bi-shield-check"></i> Enable Two-Factor Authentication
+                            </a>
+                            <small class="d-block mt-2 text-muted">
+                                <i class="bi bi-info-circle"></i> This feature will be available in a future update.
+                            </small>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success">
+                            <strong>Two-factor authentication is enabled.</strong>
+                            <p>
+                                You have enabled two-factor authentication, adding an extra layer of security to your account.
+                            </p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <a href="#" class="btn btn-danger disabled">
+                                <i class="bi bi-shield-x"></i> Disable Two-Factor Authentication
+                            </a>
+                            <small class="d-block mt-2 text-muted">
+                                <i class="bi bi-info-circle"></i> This feature will be available in a future update.
+                            </small>
+                        </div>
+                        
+                        @if (Model.RecoveryCodesLeft == 0)
+                        {
+                            <div class="alert alert-danger">
+                                <strong>You have no recovery codes left.</strong>
+                                <p>You must generate a new set of recovery codes before you can log in with a recovery code.</p>
+                            </div>
+                        }
+                        else if (Model.RecoveryCodesLeft <= 3)
+                        {
+                            <div class="alert alert-warning">
+                                <strong>You have @Model.RecoveryCodesLeft recovery codes left.</strong>
+                                <p>You should generate a new set of recovery codes.</p>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <a asp-action="Manage" class="text-decoration-none">
+                    <i class="bi bi-arrow-left"></i> Back to Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div> 

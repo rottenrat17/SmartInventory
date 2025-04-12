@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Registration Confirmation";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h2>@ViewData["Title"]</h2>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-envelope-check display-1 text-success"></i>
+                    </div>
+                    
+                    <h4 class="text-center">Almost there!</h4>
+                    <p class="lead text-center">Please check your email to confirm your account.</p>
+                    
+                    <div class="alert alert-info">
+                        <p><strong>We sent an email to:</strong> @ViewBag.Email</p>
+                        <p>Click the confirmation link in the email to activate your account.</p>
+                    </div>
+                    
+                    <p>If you don't see the email in your inbox, please check your spam folder.</p>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <a asp-action="ResendEmailConfirmation" asp-route-email="@ViewBag.Email" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-repeat"></i> Resend Confirmation Email
+                        </a>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-house"></i> Return to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

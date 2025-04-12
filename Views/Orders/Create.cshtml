@@ -1,0 +1,405 @@
+@{
+    ViewData["Title"] = "Create Order";
+}
+
+<h1>Create Order</h1>
+
+<div id="orderSuccessAlert" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+    <strong>Success!</strong> Your order has been placed successfully.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<div id="orderErrorAlert" class="alert alert-danger alert-dismissible fade show d-none" role="alert">
+    <strong>Error!</strong> <span id="orderErrorMessage">There was a problem processing your order.</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>New Order</h5>
+            </div>
+            <div class="card-body">
+                <form id="createOrderForm">
+                    @Html.AntiForgeryToken()
+                    
+                    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @ViewBag.ErrorMessage
+                        </div>
+                    }
+
+                    <div class="mb-4">
+                        <h6>Guest Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="guestName" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="guestName" name="guestName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="guestEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="guestEmail" name="guestEmail" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Products</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="productTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Price</th>
+                                        <th>Available</th>
+                                        <th>Quantity</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (ViewBag.Products != null)
+                                    {
+                                        foreach (var product in ViewBag.Products)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input product-select" type="checkbox" 
+                                                               value="@product.Id" id="product-@product.Id" 
+                                                               data-product-name="@product.Name"
+                                                               data-product-price="@product.Price"
+                                                               data-product-stock="@product.StockQuantity">
+                                                        <label class="form-check-label" for="product-@product.Id">
+                                                            @product.Name
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                                <td>@string.Format("{0:C}", product.Price)</td>
+                                                <td>@product.StockQuantity</td>
+                                                <td>
+                                                    <input type="number" class="form-control quantity-input" 
+                                                           min="1" max="@product.StockQuantity" value="1" 
+                                                           id="qty-@product.Id" disabled>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary add-to-order" 
+                                                            data-product-id="@product.Id" disabled>
+                                                        Add
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Order Summary</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="orderSummaryTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Price</th>
+                                        <th>Quantity</th>
+                                        <th>Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orderItems">
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                        <td id="orderTotal">$0.00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="selectedProductsContainer">
+                    </div>
+
+                    <div id="orderLoadingSpinner" class="text-center my-3 d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Processing order...</span>
+                        </div>
+                        <p class="mt-2">Processing your order...</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-primary" id="submitOrder" disabled>Place Order</button>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Order Instructions</h5>
+            </div>
+            <div class="card-body">
+                <p>Follow these steps to create a new order:</p>
+                <ol>
+                    <li>Enter your contact information.</li>
+                    <li>Select products from the list and specify quantities.</li>
+                    <li>Review your order in the Order Summary section.</li>
+                    <li>Click "Place Order" to complete your purchase.</li>
+                </ol>
+                <p class="text-muted">Note: This is a guest checkout. Your order will be saved with the contact information you provide.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="orderSuccessModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Order Placed Successfully!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Your order has been placed successfully. Thank you for your purchase!</p>
+                <p>Order Number: <strong id="orderNumberDisplay"></strong></p>
+            </div>
+            <div class="modal-footer">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Back to Home</a>
+                <a href="#" id="viewOrderLink" class="btn btn-primary">View Order</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            var orderItems = [];
+            updateOrderSummary();
+
+            // Handle checkbox selection
+            $('.product-select').change(function() {
+                var productId = $(this).val();
+                var qtyInput = $('#qty-' + productId);
+                var addButton = $(this).closest('tr').find('.add-to-order');
+                
+                if ($(this).is(':checked')) {
+                    qtyInput.prop('disabled', false);
+                    addButton.prop('disabled', false);
+                } else {
+                    qtyInput.prop('disabled', true);
+                    addButton.prop('disabled', true);
+                    removeFromOrder(productId);
+                }
+            });
+
+            // Add to order button
+            $('.add-to-order').click(function() {
+                var productId = $(this).data('product-id');
+                var checkbox = $('#product-' + productId);
+                var quantity = parseInt($('#qty-' + productId).val());
+                var name = checkbox.data('product-name');
+                var price = parseFloat(checkbox.data('product-price'));
+                var stock = parseInt(checkbox.data('product-stock'));
+                
+                if (quantity <= 0 || quantity > stock) {
+                    alert('Please enter a valid quantity (1-' + stock + ')');
+                    return;
+                }
+                
+                var existingItemIndex = -1;
+                for (var i = 0; i < orderItems.length; i++) {
+                    if (orderItems[i].productId === productId) {
+                        existingItemIndex = i;
+                        break;
+                    }
+                }
+                
+                if (existingItemIndex !== -1) {
+                    orderItems[existingItemIndex].quantity = quantity;
+                } else {
+                    orderItems.push({
+                        productId: productId,
+                        name: name,
+                        price: price,
+                        quantity: quantity
+                    });
+                }
+                
+                updateOrderSummary();
+            });
+
+            // Validate the order form
+            function validateOrderForm() {
+                var guestName = $('#guestName').val();
+                var guestEmail = $('#guestEmail').val();
+                
+                if (!guestName || !guestEmail) {
+                    $('#orderErrorMessage').text('Please provide your name and email.');
+                    $('#orderErrorAlert').removeClass('d-none');
+                    return false;
+                }
+                
+                // No custom email validation - rely on HTML5 validation
+                
+                if (orderItems.length === 0) {
+                    $('#orderErrorMessage').text('Please add at least one product to your order.');
+                    $('#orderErrorAlert').removeClass('d-none');
+                    return false;
+                }
+                
+                return true;
+            }
+
+            // Reset the order form
+            function resetOrderForm() {
+                $('#guestName').val('');
+                $('#guestEmail').val('');
+                
+                $('.product-select').prop('checked', false);
+                $('.quantity-input').prop('disabled', true).val(1);
+                $('.add-to-order').prop('disabled', true);
+                
+                orderItems = [];
+                updateOrderSummary();
+                
+                $('#orderSuccessAlert, #orderErrorAlert').addClass('d-none');
+            }
+
+            // Submit order via AJAX
+            $('#submitOrder').click(function(e) {
+                e.preventDefault();
+                
+                if (!validateOrderForm()) {
+                    return;
+                }
+                
+                $('#orderLoadingSpinner').removeClass('d-none');
+                $('#submitOrder').prop('disabled', true);
+                
+                var guestName = $('#guestName').val();
+                var guestEmail = $('#guestEmail').val();
+                var productIds = [];
+                var quantities = [];
+                
+                for (var i = 0; i < orderItems.length; i++) {
+                    productIds.push(orderItems[i].productId);
+                    quantities.push(orderItems[i].quantity);
+                }
+                
+                $.ajax({
+                    url: '@Url.Action("Create", "Orders")',
+                    type: 'POST',
+                    data: {
+                        guestName: guestName,
+                        guestEmail: guestEmail,
+                        productIds: productIds,
+                        quantities: quantities,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        $('#orderLoadingSpinner').addClass('d-none');
+                        
+                        if (response.success) {
+                            $('#orderNumberDisplay').text(response.orderNumber);
+                            $('#viewOrderLink').attr('href', '@Url.Action("OrderSummary", "Orders")/' + response.orderId);
+                            $('#orderSuccessModal').modal('show');
+                            
+                            resetOrderForm();
+                        } else {
+                            $('#orderErrorMessage').text(response.errorMessage || 'There was a problem processing your order.');
+                            $('#orderErrorAlert').removeClass('d-none');
+                            $('#submitOrder').prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $('#orderLoadingSpinner').addClass('d-none');
+                        
+                        $('#orderErrorMessage').text('An error occurred while processing your order. Please try again.');
+                        $('#orderErrorAlert').removeClass('d-none');
+                        $('#submitOrder').prop('disabled', false);
+                        
+                        console.error('Order submission error:', error);
+                    }
+                });
+            });
+
+            // Remove item from order
+            function removeFromOrder(productId) {
+                var index = -1;
+                for (var i = 0; i < orderItems.length; i++) {
+                    if (orderItems[i].productId == productId) {
+                        index = i;
+                        break;
+                    }
+                }
+                
+                if (index !== -1) {
+                    orderItems.splice(index, 1);
+                    updateOrderSummary();
+                }
+            }
+            
+            // Update order summary
+            function updateOrderSummary() {
+                var orderItemsContainer = $('#orderItems');
+                var selectedProductsContainer = $('#selectedProductsContainer');
+                var total = 0;
+                
+                orderItemsContainer.empty();
+                selectedProductsContainer.empty();
+                
+                for (var i = 0; i < orderItems.length; i++) {
+                    var item = orderItems[i];
+                    var itemTotal = item.price * item.quantity;
+                    total += itemTotal;
+                    
+                    var row = '<tr>' +
+                        '<td>' + item.name + '</td>' +
+                        '<td>$' + item.price.toFixed(2) + '</td>' +
+                        '<td>' + item.quantity + '</td>' +
+                        '<td>$' + itemTotal.toFixed(2) + '</td>' +
+                        '<td>' +
+                        '<button type="button" class="btn btn-sm btn-danger remove-item" data-index="' + i + '">' +
+                        '<i class="bi bi-trash"></i>' +
+                        '</button>' +
+                        '</td>' +
+                        '</tr>';
+                    
+                    orderItemsContainer.append(row);
+                    
+                    selectedProductsContainer.append(
+                        '<input type="hidden" name="productIds" value="' + item.productId + '">' +
+                        '<input type="hidden" name="quantities" value="' + item.quantity + '">'
+                    );
+                }
+                
+                $('#orderTotal').text('$' + total.toFixed(2));
+                $('#submitOrder').prop('disabled', orderItems.length === 0);
+                
+                // Attach event handlers for remove buttons
+                $('.remove-item').click(function() {
+                    var index = parseInt($(this).data('index'));
+                    var productId = orderItems[index].productId;
+                    
+                    $('#product-' + productId).prop('checked', false);
+                    $('#qty-' + productId).prop('disabled', true);
+                    $('.add-to-order[data-product-id="' + productId + '"]').prop('disabled', true);
+                    
+                    orderItems.splice(index, 1);
+                    updateOrderSummary();
+                });
+            }
+        });
+    </script>
+} 

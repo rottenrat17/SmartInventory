@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "Resend Email Confirmation";
+    var email = ViewBag.Email as string;
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2>@ViewData["Title"]</h2>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(email))
+                    {
+                        <div class="alert alert-success">
+                            <h4><i class="bi bi-envelope-check"></i> Confirmation Email Sent!</h4>
+                            <p>We've sent a new confirmation email to <strong>@email</strong>.</p>
+                            <p>Please check your email and click the confirmation link to activate your account.</p>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <a asp-action="Login" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Return to Login
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="lead">Enter your email address to receive a new confirmation link.</p>
+                        
+                        <form method="post" asp-action="ResendEmailConfirmation">
+                            <div class="form-group mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email address" required />
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Resend Confirmation
+                                </button>
+                                <a asp-action="Login" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Back to Login
+                                </a>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

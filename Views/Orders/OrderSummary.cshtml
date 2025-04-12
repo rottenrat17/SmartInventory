@@ -1,0 +1,81 @@
+﻿@model SmartInventoryManagement.Models.Order
+
+@{
+    ViewData["Title"] = "Order Summary";
+}
+
+<h1>Order Summary</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Order #@Model.OrderNumber</h5>
+                <span class="badge bg-primary">@Model.OrderDate.ToString("MMM dd, yyyy")</span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Guest Information</h6>
+                        <p class="mb-1"><strong>Name:</strong> @Model.GuestName</p>
+                        <p><strong>Email:</strong> @Model.GuestEmail</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <h6>Order Details</h6>
+                        <p class="mb-1"><strong>Date:</strong> @Model.OrderDate.ToString("MMM dd, yyyy hh:mm tt")</p>
+                        <p><strong>Order #:</strong> @Model.OrderNumber</p>
+                    </div>
+                </div>
+                <h6>Items</h6>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th class="text-end">Price</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.OrderItems)
+                            {
+                                <tr>
+                                    <td>@item.Product?.Name</td>
+                                    <td>@item.Quantity</td>
+                                    <td class="text-end">@string.Format("{0:C}", item.UnitPrice)</td>
+                                    <td class="text-end">@string.Format("{0:C}", item.Quantity * item.UnitPrice)</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td class="text-end"><strong>@string.Format("{0:C}", Model.TotalAmount)</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <a asp-action="Index" class="btn btn-primary">View All Orders</a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Back to Home</a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Order Information</h5>
+            </div>
+            <div class="card-body">
+                <p>Your order has been received and is being processed.</p>
+                <p>You can track your order status using the order number:</p>
+                <div class="bg-light p-2 mb-3 text-center">
+                    <h5 class="mb-0">@Model.OrderNumber</h5>
+                </div>
+                <p>If you have any questions about your order, please contact customer support.</p>
+            </div>
+        </div>
+    </div>
+</div>

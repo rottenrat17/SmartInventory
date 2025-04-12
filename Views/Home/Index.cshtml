@@ -2,7 +2,40 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome To Munoim's App</h1>
+<div class="jumbotron bg-light p-5 rounded mb-4">
+    <h1 class="display-4">Smart Inventory Management</h1>
+    <p class="lead">Manage your inventory with ease and track products across different categories.</p>
+    <hr class="my-4">
+    <p>Access key features below or use the navigation menu.</p>
+</div>
 
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="bi bi-box-seam fs-1 d-block mb-3"></i>Inventory Management</h5>
+                <p class="card-text">View, add, update, and delete products in your inventory.</p>
+                <a asp-controller="Products" asp-action="Index" class="btn btn-primary">Manage Products</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="bi bi-tags fs-1 d-block mb-3"></i>Categories</h5>
+                <p class="card-text">Organize your products by creating and managing categories.</p>
+                <a asp-controller="Category" asp-action="Index" class="btn btn-primary">Manage Categories</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="bi bi-cart-check fs-1 d-block mb-3"></i>Orders</h5>
+                <p class="card-text">Create new orders or track existing ones.</p>
+                <a asp-controller="Orders" asp-action="Create" class="btn btn-primary">New Order</a>
+                <a asp-controller="Orders" asp-action="Track" class="btn btn-outline-secondary mt-2">Track Order</a>
+            </div>
+        </div>
+    </div>
 </div>

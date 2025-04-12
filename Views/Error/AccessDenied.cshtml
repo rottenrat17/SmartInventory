@@ -1,0 +1,38 @@
+@model SmartInventoryManagement.Models.ErrorViewModel
+
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-1 text-danger">
+                <i class="fas fa-lock"></i>
+            </h1>
+            <h2 class="mb-4">Access Denied</h2>
+            
+            <div class="alert alert-danger" role="alert">
+                @Model.ErrorMessage
+            </div>
+
+            <div class="mt-4">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Return to Home
+                </a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a href="@Url.Action("Logout", "Account")" class="btn btn-secondary">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "Account")" class="btn btn-secondary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div> 

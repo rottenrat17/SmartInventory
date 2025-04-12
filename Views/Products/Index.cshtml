@@ -1,15 +1,132 @@
-@model List<string>
+@model IEnumerable<SmartInventoryManagement.Models.Product>
 
-<h2>Product List</h2>
+@{
+    ViewData["Title"] = "Products";
+}
 
-<div class="product-container">
-    @foreach (var product in Model)
-    {
-        <div class="product-card">
-            <h3>@product</h3>
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>@ViewData["Title"]</h1>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Product
+            </a>
+        }
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Search & Filter</h5>
         </div>
-    }
+        <div class="card-body">
+            <form id="searchForm" method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchTerm" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchTerm" name="searchTerm" placeholder="Product name...">
+                </div>
+                <div class="col-md-4">
+                    <label for="categoryId" class="form-label">Category</label>
+                    <select class="form-select" id="categoryId" name="categoryId">
+                        <option value="">All Categories</option>
+                        @foreach (var category in ViewBag.Categories)
+                        {
+                            <option value="@category.Id">@category.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="priceRange" class="form-label">Price Range</label>
+                    <div class="d-flex">
+                        <input type="number" class="form-control me-2" id="minPrice" name="minPrice" placeholder="Min">
+                        <input type="number" class="form-control" id="maxPrice" name="maxPrice" placeholder="Max">
+                    </div>
+                </div>
+                <div class="col-12 mt-3">
+                    <button type="button" id="searchButton" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <button type="reset" id="resetButton" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div id="loadingSpinner" class="text-center d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading products...</p>
+    </div>
+
+    <!-- Products container -->
+    <div id="productsContainer">
+        @await Html.PartialAsync("_ProductsList", Model)
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Search button click handler
+            $("#searchButton").click(function () {
+                performSearch();
+            });
+
+            // Reset button click handler
+            $("#resetButton").click(function () {
+                $("#searchForm")[0].reset();
+                performSearch();
+            });
+
+            // Handle enter key on search input
+            $("#searchTerm").keypress(function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    performSearch();
+                }
+            });
+
+            // Function to perform AJAX search
+            function performSearch() {
+                // Show loading spinner
+                $("#loadingSpinner").removeClass("d-none");
+                $("#productsContainer").addClass("d-none");
+
+                // Get form values
+                var searchTerm = $("#searchTerm").val();
+                var categoryId = $("#categoryId").val();
+                var minPrice = $("#minPrice").val();
+                var maxPrice = $("#maxPrice").val();
+
+                // Perform AJAX request
+                $.ajax({
+                    url: "@Url.Action("GetProductPartial", "Products")",
+                    type: "GET",
+                    data: {
+                        searchTerm: searchTerm,
+                        categoryId: categoryId,
+                        minPrice: minPrice,
+                        maxPrice: maxPrice
+                    },
+                    success: function (data) {
+                        // Hide spinner and show results
+                        $("#loadingSpinner").addClass("d-none");
+                        $("#productsContainer").html(data).removeClass("d-none");
+                    },
+                    error: function () {
+                        // Hide spinner and show error message
+                        $("#loadingSpinner").addClass("d-none");
+                        $("#productsContainer").html('<div class="alert alert-danger">An error occurred while searching for products. Please try again.</div>').removeClass("d-none");
+                    }
+                });
+            }
+        });
+    </script>
+}
 
 <style>
     .product-container {

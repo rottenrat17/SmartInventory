@@ -1,0 +1,83 @@
+@model SmartInventoryManagement.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2>@ViewData["Title"]</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-controller="Account" asp-action="Login" asp-route-returnurl="@ViewData["ReturnUrl"]">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    
+                    <div class="form-group mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="Email" class="form-control" placeholder="Enter your email address" />
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label"></label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Log in
+                        </button>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <p>
+                                <a asp-action="ForgotPassword">
+                                    <i class="bi bi-key"></i> Forgot your password?
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <p>
+                                <a asp-action="ResendEmailConfirmation">
+                                    <i class="bi bi-envelope"></i> Resend confirmation email
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <hr />
+                    
+                    <div class="text-center">
+                        <p>
+                            Don't have an account? 
+                            <a asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]">
+                                <i class="bi bi-person-plus"></i> Register as a new user
+                            </a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+} 

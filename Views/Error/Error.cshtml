@@ -1,0 +1,39 @@
+@model SmartInventoryManagement.Models.ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<div class="error-container container py-5">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h1 class="fs-4 mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                An Error Occurred
+            </h1>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2 class="fs-5 text-danger">Sorry, something went wrong</h2>
+                    <p>@(Model?.ErrorMessage ?? "An unexpected error has occurred. Please try again later or contact support if the problem persists.")</p>
+                    
+                    @if (!string.IsNullOrEmpty(Model?.RequestId))
+                    {
+                        <p class="text-muted small">
+                            <strong>Request ID:</strong> <code>@Model.RequestId</code>
+                        </p>
+                    }
+                    
+                    <div class="mt-4">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                            <i class="bi bi-house-door me-2"></i>Return to Home
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-emoji-frown text-danger" style="font-size: 6rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
