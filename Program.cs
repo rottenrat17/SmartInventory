@@ -6,7 +6,6 @@ using SmartInventoryManagement.Services;
 using SmartInventoryManagement.Middleware;
 using Serilog;
 using Serilog.Events;
-using System.IO;
 
 namespace SmartInventoryManagement
 {
@@ -48,26 +47,7 @@ namespace SmartInventoryManagement
                 }
                 else
                 {
-                    Log.Information($"Using connection string from configuration: {connectionString}");
-                    
-                    // Extract the database file path from the connection string
-                    var dbFilePath = connectionString.Replace("Data Source=", "").Trim();
-                    var dbDirectory = Path.GetDirectoryName(dbFilePath);
-                    
-                    // Ensure directory exists
-                    if (!string.IsNullOrEmpty(dbDirectory) && !Directory.Exists(dbDirectory))
-                    {
-                        try {
-                            Directory.CreateDirectory(dbDirectory);
-                            Log.Information($"Created database directory: {dbDirectory}");
-                        }
-                        catch (Exception ex) {
-                            Log.Error(ex, $"Failed to create database directory: {dbDirectory}");
-                            // Fall back to default if we can't create the directory
-                            connectionString = "Data Source=SmartInventory.db";
-                            Log.Information("Falling back to default SQLite connection string");
-                        }
-                    }
+                    Log.Information("Using connection string from configuration");
                 }
 
                 // Configure to use SQLite instead of PostgreSQL
@@ -139,23 +119,16 @@ namespace SmartInventoryManagement
                 using (var scope = app.Services.CreateScope())
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    try {
-                        // Create the database if it doesn't exist
-                        Log.Information("Attempting to create database if it doesn't exist");
-                        dbContext.Database.EnsureCreated();
-                        Log.Information("Database created or already exists");
+                    // Create the database if it doesn't exist
+                    dbContext.Database.EnsureCreated();
 
-                        // Initialize roles
-                        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                        var roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
+                    // Initialize roles
+                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                    var roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
 
-                        await roleInitializer.InitializeRolesAsync(roleManager);
-                        await roleInitializer.InitializeAdminUserAsync(userManager);
-                    }
-                    catch (Exception ex) {
-                        Log.Error(ex, "Error setting up database");
-                    }
+                    await roleInitializer.InitializeRolesAsync(roleManager);
+                    await roleInitializer.InitializeAdminUserAsync(userManager);
                 }
 
                 app.Run();
