@@ -8,28 +8,28 @@ namespace SmartInventoryManagement.Services
 {
     public class MailerSendEmailService : IEmailService
     {
+        private readonly ILogger<MailerSendEmailService> _logger;
         private readonly IConfiguration _configuration;
-        protected readonly ILogger<MailerSendEmailService> _logger;
-        protected string _fromEmail;
-        protected string _fromName;
-        protected string _host;
-        protected int _port;
-        protected string _username;
-        protected string _password;
+        private readonly string _fromEmail;
+        private readonly string _fromName;
+        private readonly string _host;
+        private readonly int _port;
+        private readonly string _username;
+        private readonly string _password;
 
         public MailerSendEmailService(IConfiguration configuration, ILogger<MailerSendEmailService> logger)
         {
-            _configuration = configuration;
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             
-            _fromEmail = _configuration["MailerSend:FromEmail"] ?? throw new ArgumentNullException("MailerSend:FromEmail is not configured");
-            _fromName = _configuration["MailerSend:FromName"] ?? throw new ArgumentNullException("MailerSend:FromName is not configured");
-            _host = _configuration["MailerSend:Host"] ?? throw new ArgumentNullException("MailerSend:Host is not configured");
+            _host = _configuration["MailerSend:Host"] ?? "smtp.mailersend.net";
             _port = int.Parse(_configuration["MailerSend:Port"] ?? "587");
-            _username = _configuration["MailerSend:Username"] ?? throw new ArgumentNullException("MailerSend:Username is not configured");
-            _password = _configuration["MailerSend:Password"] ?? throw new ArgumentNullException("MailerSend:Password is not configured");
-            
-            _logger.LogInformation("MailerSendEmailService initialized with: Host={Host}, Port={Port}, Username={Username}, FromEmail={FromEmail}", 
+            _username = _configuration["MailerSend:Username"] ?? throw new InvalidOperationException("MailerSend:Username is not configured.");
+            _password = _configuration["MailerSend:Password"] ?? throw new InvalidOperationException("MailerSend:Password is not configured.");
+            _fromEmail = _configuration["MailerSend:FromEmail"] ?? _username;
+            _fromName = _configuration["MailerSend:FromName"] ?? "Smart Inventory System";
+
+            _logger.LogInformation("MailerSendEmailService initialized with: Host={Host}, Port={Port}, Username={Username}, FromEmail={FromEmail}",
                 _host, _port, _username, _fromEmail);
         }
 
@@ -37,7 +37,7 @@ namespace SmartInventoryManagement.Services
         protected MailerSendEmailService(ILogger<MailerSendEmailService> logger)
         {
             _logger = logger;
-            _configuration = null;  // Now this is allowed because _configuration is nullable
+            _configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
             _fromEmail = "test@example.com";
             _fromName = "Test Sender";
             _host = "localhost";

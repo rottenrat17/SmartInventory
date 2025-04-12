@@ -5,11 +5,8 @@ namespace SmartInventoryManagement.Services
 {
     public class RoleInitializationService
     {
-        public static async Task InitializeRoles(IServiceProvider serviceProvider)
+        public async Task InitializeRolesAsync(RoleManager<IdentityRole> roleManager)
         {
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
             // Create roles if they don't exist
             string[] roleNames = { "Admin", "User" };
             foreach (var roleName in roleNames)
@@ -19,7 +16,10 @@ namespace SmartInventoryManagement.Services
                     await roleManager.CreateAsync(new IdentityRole(roleName));
                 }
             }
+        }
 
+        public async Task InitializeAdminUserAsync(UserManager<ApplicationUser> userManager)
+        {
             // Create admin user if it doesn't exist
             var adminEmail = "pokhrelpratik71@gmail.com";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
