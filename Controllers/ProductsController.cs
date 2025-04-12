@@ -267,7 +267,7 @@ namespace SmartInventoryManagement.Controllers
                     p.Name,
                     p.Price,
                     p.StockQuantity,
-                    CategoryName = p.Category?.Name ?? "No Category",
+                    CategoryName = p.Category == null ? "No Category" : p.Category.Name,
                     p.LowStockThreshold
                 }).ToListAsync();
 
