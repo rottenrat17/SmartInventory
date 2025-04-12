@@ -261,15 +261,27 @@ namespace SmartInventoryManagement.Controllers
                     products = products.Where(p => p.Price <= maxPrice.Value);
                 }
 
-                var result = await products.Select(p => new
+                // Select necessary data including the Category object
+                var intermediateResult = await products.Select(p => new
                 {
                     p.Id,
                     p.Name,
                     p.Price,
                     p.StockQuantity,
-                    CategoryName = p.Category == null ? "No Category" : p.Category.Name,
+                    p.Category, // Select the whole object
                     p.LowStockThreshold
                 }).ToListAsync();
+
+                // Project the final result in memory
+                var result = intermediateResult.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Price,
+                    p.StockQuantity,
+                    CategoryName = p.Category == null ? "No Category" : p.Category.Name, // Perform null check here
+                    p.LowStockThreshold
+                }).ToList();
 
                 return Json(result);
             }
