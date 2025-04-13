@@ -87,8 +87,13 @@ namespace SmartInventoryManagement
                     options.Lockout.MaxFailedAccessAttempts = 1000;
                 });
 
-                // Register Email Service
-                builder.Services.AddTransient<IEmailService, MailerSendEmailService>();
+                // Register Email Service - Use NoOp service to completely disable email functionality
+                // This ensures that no email-related errors can prevent the application from working
+                builder.Services.AddTransient<IEmailService>(sp => 
+                {
+                    var logger = sp.GetRequiredService<ILogger<NoOpEmailService>>();
+                    return new NoOpEmailService(logger);
+                });
 
                 // Add Identity services
                 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -173,24 +178,42 @@ namespace SmartInventoryManagement
                     {
                         // Create the database if it doesn't exist
                         Log.Information("Attempting to create database if it doesn't exist");
-                        dbContext.Database.EnsureCreated();
-                        Log.Information("Database created or already exists");
-
-                        // Initialize roles and users using RoleInitializationService
-                        var roleInitService = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
-                        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                         
-                        // This is causing the error - these methods are implemented but the calls are wrong
-                        await roleInitService.InitializeRolesAsync(roleManager);
-                        await roleInitService.InitializeAdminUserAsync(userManager);
-                        
-                        // Optional: Clear non-admin users for testing (comment out if not needed)
-                        var nonAdminUsers = userManager.Users.Where(u => !userManager.IsInRoleAsync(u, "Admin").Result).ToList();
-                        foreach (var user in nonAdminUsers)
+                        // First, check if we can connect to the database
+                        bool canConnect = false;
+                        try
                         {
-                            await userManager.DeleteAsync(user);
-                            Log.Information("Deleted non-admin user during startup: {Email}", user.Email);
+                            canConnect = dbContext.Database.CanConnect();
+                            Log.Information("Database connection test result: {CanConnect}", canConnect);
+                        }
+                        catch (Exception connEx)
+                        {
+                            Log.Error(connEx, "Error testing database connection");
+                        }
+                        
+                        if (canConnect)
+                        {
+                            dbContext.Database.EnsureCreated();
+                            Log.Information("Database created or already exists");
+
+                            // Initialize roles and users using RoleInitializationService
+                            var roleInitService = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
+                            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                            
+                            try
+                            {
+                                await roleInitService.InitializeRolesAsync(roleManager);
+                                await roleInitService.InitializeAdminUserAsync(userManager);
+                            }
+                            catch (Exception roleEx)
+                            {
+                                Log.Error(roleEx, "Error initializing roles or admin user");
+                            }
+                        }
+                        else
+                        {
+                            Log.Warning("Cannot connect to database - skipping initialization");
                         }
                     }
                     catch (Exception ex)

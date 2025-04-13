@@ -2,13 +2,21 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using SmartInventoryManagement.Models;
+using Microsoft.Extensions.Logging;
 
 namespace SmartInventoryManagement.Database
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        private readonly ILogger<ApplicationDbContext> _logger;
+
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options,
+            ILogger<ApplicationDbContext> logger = null) : base(options)
         {
+            _logger = logger;
+            _logger?.LogInformation("ApplicationDbContext initialized with connection: {Connection}", 
+                Database.GetConnectionString());
         }
 
         public DbSet<Product> Products { get; set; }
