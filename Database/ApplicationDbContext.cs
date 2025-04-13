@@ -8,11 +8,11 @@ namespace SmartInventoryManagement.Database
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        private readonly ILogger<ApplicationDbContext> _logger;
+        private readonly ILogger<ApplicationDbContext>? _logger;
 
         public ApplicationDbContext(
             DbContextOptions<ApplicationDbContext> options,
-            ILogger<ApplicationDbContext> logger = null) : base(options)
+            ILogger<ApplicationDbContext>? logger = null) : base(options)
         {
             _logger = logger;
             _logger?.LogInformation("ApplicationDbContext initialized with connection: {Connection}", 
