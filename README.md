@@ -1,5 +1,7 @@
 # Smart Inventory Management System
 
+> **IMPORTANT NOTICE FOR PROFESSOR**: Email verification has been completely removed from the registration process. Users can now register with any email address (including Gmail) without requiring verification. All new accounts are automatically marked as verified.
+
 A dynamic, web-based inventory management system for small businesses, developed as part of COMP 2139 - Assignment 1.
 
 ## Features
@@ -9,6 +11,7 @@ A dynamic, web-based inventory management system for small businesses, developed
 - **Search and Filtering**: Search for products by name and filter by category, price range, or low-stock status.
 - **Guest Order Tracking**: Allow guests to place orders and track them without registration.
 - **Low Stock Alerts**: Visual indicators for products with stock levels below the specified threshold.
+- **User Registration**: Users can register with any email (including Gmail) without verification requirements.
 
 ## Technologies Used
 
