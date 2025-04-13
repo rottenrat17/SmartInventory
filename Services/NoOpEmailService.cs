@@ -9,7 +9,7 @@ namespace SmartInventoryManagement.Services
     /// </summary>
     public class NoOpEmailService : IEmailService
     {
-        public NoOpEmailService(ILogger<NoOpEmailService> logger = null)
+        public NoOpEmailService(ILogger<NoOpEmailService>? logger = null)
         {
             // Empty constructor - no dependencies
         }
