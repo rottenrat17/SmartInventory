@@ -112,19 +112,10 @@ namespace SmartInventoryManagement
                 // Add Identity services
                 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
                 {
-                    // CRITICAL FIX: Completely disable email confirmation requirements
-                    options.SignIn.RequireConfirmedAccount = builder.Configuration.GetValue<bool>("IdentitySettings:RequireConfirmedAccount", false);
-                    options.SignIn.RequireConfirmedEmail = builder.Configuration.GetValue<bool>("IdentitySettings:RequireConfirmedEmail", false);
-                    options.SignIn.RequireConfirmedPhoneNumber = builder.Configuration.GetValue<bool>("IdentitySettings:RequireConfirmedPhoneNumber", false);
-                    
-                    // Log this configuration at startup
-                    Log.Information("STARTUP CONFIG: Email confirmation settings - RequireConfirmedAccount:{0}, RequireConfirmedEmail:{1}", 
-                        options.SignIn.RequireConfirmedAccount, 
-                        options.SignIn.RequireConfirmedEmail);
-                    
-                    // User settings - allow duplicate emails temporarily
-                    options.User.RequireUniqueEmail = false;
-                    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+                    // CRITICAL: Completely disable ALL email confirmation requirements
+                    options.SignIn.RequireConfirmedAccount = false;
+                    options.SignIn.RequireConfirmedEmail = false;
+                    options.SignIn.RequireConfirmedPhoneNumber = false;
                     
                     // Password settings
                     options.Password.RequireDigit = true;
