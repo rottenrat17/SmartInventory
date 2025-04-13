@@ -75,21 +75,7 @@ namespace SmartInventoryManagement
                 // Configure to use SQLite instead of PostgreSQL
                 builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    try
-                    {
-                        Log.Information("Configuring database with connection string: {ConnectionString}", 
-                            connectionString.Substring(0, Math.Min(10, connectionString.Length)) + "...");
-                        
-                        options.UseSqlite(connectionString);
-                        Log.Information("Database context configured with SQLite");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Error configuring database context: {Message}", ex.Message);
-                        // Continue with default options - will be caught by error handling later
-                        options.UseSqlite("Data Source=SmartInventory_fallback.db");
-                        Log.Warning("Using fallback database configuration");
-                    }
+                    options.UseSqlite(connectionString);
                 });
 
                 // Configure identity for database reset
@@ -101,13 +87,8 @@ namespace SmartInventoryManagement
                     options.Lockout.MaxFailedAccessAttempts = 1000;
                 });
 
-                // Register Email Service - Use NoOp service to completely disable email functionality
-                // This ensures that no email-related errors can prevent the application from working
-                builder.Services.AddTransient<IEmailService>(sp => 
-                {
-                    var logger = sp.GetRequiredService<ILogger<NoOpEmailService>>();
-                    return new NoOpEmailService(logger);
-                });
+                // Register Email Service - simple no-op implementation
+                builder.Services.AddTransient<IEmailService, NoOpEmailService>();
 
                 // Add Identity services
                 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -149,15 +130,9 @@ namespace SmartInventoryManagement
                 }
                 else
                 {
-                    // For production - still show detailed errors for now to diagnose issues
-                    app.UseDeveloperExceptionPage();
-                    // We'll also leave these as fallbacks
                     app.UseExceptionHandler("/Error/Error");
                     app.UseStatusCodePagesWithReExecute("/Error/{0}");
                     app.UseHsts();
-                    
-                    // Log that we're running in Production mode
-                    Log.Information("Application is running in Production environment with DeveloperExceptionPage enabled for diagnostics");
                 }
 
                 // Use the custom exception handling middleware
@@ -175,86 +150,25 @@ namespace SmartInventoryManagement
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-                // Ensure the database is created and apply migrations
+                // Simple database initialization
                 using (var scope = app.Services.CreateScope())
                 {
                     try
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        dbContext.Database.EnsureCreated();
                         
-                        // Create the database if it doesn't exist
-                        Log.Information("Attempting to create database if it doesn't exist");
+                        var roleInitService = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
+                        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                         
-                        // First, check if we can connect to the database
-                        bool canConnect = false;
-                        try
-                        {
-                            canConnect = dbContext.Database.CanConnect();
-                            Log.Information("Database connection test result: {CanConnect}", canConnect);
-                        }
-                        catch (Exception connEx)
-                        {
-                            Log.Error(connEx, "Error testing database connection: {Message}", connEx.Message);
-                            // We'll handle this below
-                        }
-                        
-                        try
-                        {
-                            if (canConnect)
-                            {
-                                Log.Information("Ensuring database exists...");
-                                dbContext.Database.EnsureCreated();
-                                Log.Information("Database created or already exists");
-                            }
-                            else
-                            {
-                                Log.Warning("Cannot connect to database - skipping initialization");
-                            }
-                        }
-                        catch (Exception dbEx)
-                        {
-                            Log.Error(dbEx, "Failed to ensure database is created: {Message}", dbEx.Message);
-                        }
-                        
-                        // Proceed with role and user initialization regardless of database status
-                        // This way the app can run even if database setup fails
-                        Log.Information("Initializing application roles and users");
-                        try
-                        {
-                            var roleInitService = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
-                            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                            
-                            Log.Information("Initializing roles");
-                            try
-                            {
-                                await roleInitService.InitializeRolesAsync(roleManager);
-                                Log.Information("Roles initialized successfully");
-                            }
-                            catch (Exception roleEx)
-                            {
-                                Log.Error(roleEx, "Failed to initialize roles: {Message}", roleEx.Message);
-                            }
-                            
-                            Log.Information("Initializing admin user");
-                            try
-                            {
-                                await roleInitService.InitializeAdminUserAsync(userManager);
-                                Log.Information("Admin user initialized successfully");
-                            }
-                            catch (Exception userEx)
-                            {
-                                Log.Error(userEx, "Failed to initialize admin user: {Message}", userEx.Message);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "Error initializing roles or users: {Message}", ex.Message);
-                        }
+                        // Initialize roles and admin user
+                        await roleInitService.InitializeRolesAsync(roleManager);
+                        await roleInitService.InitializeAdminUserAsync(userManager);
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(ex, "Error setting up application: {Message}", ex.Message);
+                        Log.Error(ex, "Error during initialization: {Message}", ex.Message);
                     }
                 }
 
