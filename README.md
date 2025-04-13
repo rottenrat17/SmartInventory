@@ -1,6 +1,6 @@
 # Smart Inventory Management System
 
-> **IMPORTANT NOTICE FOR PROFESSOR**: Email verification has been completely removed from the registration process. Users can now register with any email address (including Gmail) without requiring verification. All new accounts are automatically marked as verified.
+> **IMPORTANT NOTICE FOR PROFESSOR**: We are using the 'final' branch instead of 'main' to deploy the website. We removed email verification for registration as it was blocking new users from registering with Gmail accounts.
 
 A dynamic, web-based inventory management system for small businesses, developed as part of COMP 2139 - Assignment 1.
 
