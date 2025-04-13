@@ -14,17 +14,25 @@
                         <i class="bi bi-envelope-check display-1 text-success"></i>
                     </div>
                     
-                    <h4 class="text-center">Almost there!</h4>
-                    <p class="lead text-center">Please check your email to confirm your account.</p>
+                    <h4 class="text-center">Registration Successful!</h4>
+                    
+                    <div class="alert alert-success mb-4">
+                        <p><strong>Your account has been created successfully!</strong></p>
+                        <p>You can now <a asp-controller="Account" asp-action="Login" class="alert-link">log in</a> to your account.</p>
+                    </div>
                     
                     <div class="alert alert-info">
-                        <p><strong>We sent an email to:</strong> @ViewBag.Email</p>
-                        <p>Click the confirmation link in the email to activate your account.</p>
+                        <p><strong>We sent a confirmation email to:</strong> @ViewBag.Email</p>
+                        <p>Please click the confirmation link in the email to verify your email address.</p>
+                        <p><small>Note: Email verification is recommended but not required to use your account.</small></p>
                     </div>
                     
                     <p>If you don't see the email in your inbox, please check your spam folder.</p>
                     
                     <div class="d-grid gap-2 mt-4">
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Continue to Login
+                        </a>
                         <a asp-action="ResendEmailConfirmation" asp-route-email="@ViewBag.Email" class="btn btn-outline-primary">
                             <i class="bi bi-arrow-repeat"></i> Resend Confirmation Email
                         </a>

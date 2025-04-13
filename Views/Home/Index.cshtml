@@ -2,6 +2,15 @@
     ViewData["Title"] = "Home Page";
 }
 
+@* Display error message if present in TempData *@
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 @* Added a comment to trigger deployment *@
 <div class="text-center">
     <h1 class="display-4">Welcome to Smart Inventory Management</h1>

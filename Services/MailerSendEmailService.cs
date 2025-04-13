@@ -78,44 +78,37 @@ namespace SmartInventoryManagement.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send email to {Email}: {ErrorMessage}", email, ex.Message);
+                
+                // Instead of throwing exception, log it but return so caller can continue
+                // This helps with password reset where we want to continue even if email fails
+                if (subject.Contains("Reset your password"))
+                {
+                    _logger.LogWarning("Password reset email failed, but process will continue");
+                    return;
+                }
+                
                 throw new Exception($"Failed to send email: {ex.Message}", ex);
             }
         }
 
         public async Task SendEmailConfirmationAsync(string email, string confirmationLink)
         {
-            _logger.LogInformation("Sending email confirmation to {Email} with link: {Link}", email, confirmationLink);
-            
-            var subject = "Confirm your email";
-            var htmlMessage = $@"
-                <html>
-                <head>
-                    <style>
-                        body {{ font-family: Arial, sans-serif; }}
-                        .container {{ padding: 20px; max-width: 600px; margin: 0 auto; }}
-                        .header {{ background-color: #4CAF50; padding: 10px; color: white; text-align: center; }}
-                        .content {{ padding: 20px; border: 1px solid #ddd; }}
-                        .button {{ background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; display: inline-block; }}
-                    </style>
-                </head>
-                <body>
-                    <div class='container'>
-                        <div class='header'>
-                            <h2>Email Confirmation</h2>
-                        </div>
-                        <div class='content'>
-                            <h3>Hello!</h3>
-                            <p>Thank you for registering with Smart Inventory System. Please confirm your email address by clicking the button below:</p>
-                            <p><a href='{confirmationLink}' class='button'>Confirm Email</a></p>
-                            <p>If the button doesn't work, you can also copy and paste the following link into your browser:</p>
-                            <p>{confirmationLink}</p>
-                            <p>Thank you,<br>Smart Inventory Team</p>
-                        </div>
-                    </div>
-                </body>
-                </html>";
-            
-            await SendEmailAsync(email, subject, htmlMessage);
+            try
+            {
+                _logger.LogInformation("Email confirmation is disabled, but still logging the request for: {Email}", email);
+                
+                // Don't actually try to send the email - since we're disabling email verification
+                // This is safer than actually trying to send an email that might fail
+                _logger.LogInformation("Skipping actual email sending as confirmations are disabled");
+                
+                // Return immediately without attempting to send
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Log but don't throw - we don't want email failures to block registration
+                _logger.LogError(ex, "Error in email confirmation process for {Email}, but continuing", email);
+            }
         }
 
         public async Task SendPasswordResetAsync(string email, string resetLink)

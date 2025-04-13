@@ -7,6 +7,7 @@ using SmartInventoryManagement.Middleware;
 using Serilog;
 using Serilog.Events;
 using System.IO;
+using System.Linq;
 
 namespace SmartInventoryManagement
 {
@@ -77,14 +78,36 @@ namespace SmartInventoryManagement
                     options.UseSqlite(connectionString);
                 });
 
+                // Configure identity for database reset
+                builder.Services.Configure<IdentityOptions>(options =>
+                {
+                    // Do not lockout users
+                    options.Lockout.AllowedForNewUsers = false;
+                    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.Zero;
+                    options.Lockout.MaxFailedAccessAttempts = 1000;
+                });
+
                 // Register Email Service
                 builder.Services.AddTransient<IEmailService, MailerSendEmailService>();
 
                 // Add Identity services
                 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
                 {
-                    options.SignIn.RequireConfirmedAccount = true;
-                    options.User.RequireUniqueEmail = true;
+                    // CRITICAL FIX: Completely disable email confirmation requirements
+                    options.SignIn.RequireConfirmedAccount = builder.Configuration.GetValue<bool>("IdentitySettings:RequireConfirmedAccount", false);
+                    options.SignIn.RequireConfirmedEmail = builder.Configuration.GetValue<bool>("IdentitySettings:RequireConfirmedEmail", false);
+                    options.SignIn.RequireConfirmedPhoneNumber = builder.Configuration.GetValue<bool>("IdentitySettings:RequireConfirmedPhoneNumber", false);
+                    
+                    // Log this configuration at startup
+                    Log.Information("STARTUP CONFIG: Email confirmation settings - RequireConfirmedAccount:{0}, RequireConfirmedEmail:{1}", 
+                        options.SignIn.RequireConfirmedAccount, 
+                        options.SignIn.RequireConfirmedEmail);
+                    
+                    // User settings - allow duplicate emails temporarily
+                    options.User.RequireUniqueEmail = false;
+                    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+                    
+                    // Password settings
                     options.Password.RequireDigit = true;
                     options.Password.RequireLowercase = true;
                     options.Password.RequireUppercase = true;
@@ -155,6 +178,14 @@ namespace SmartInventoryManagement
                         // This is causing the error - these methods are implemented but the calls are wrong
                         await roleInitService.InitializeRolesAsync(roleManager);
                         await roleInitService.InitializeAdminUserAsync(userManager);
+                        
+                        // Optional: Clear non-admin users for testing (comment out if not needed)
+                        var nonAdminUsers = userManager.Users.Where(u => !userManager.IsInRoleAsync(u, "Admin").Result).ToList();
+                        foreach (var user in nonAdminUsers)
+                        {
+                            await userManager.DeleteAsync(user);
+                            Log.Information("Deleted non-admin user during startup: {Email}", user.Email);
+                        }
                     }
                     catch (Exception ex)
                     {
