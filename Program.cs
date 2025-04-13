@@ -139,9 +139,15 @@ namespace SmartInventoryManagement
                 }
                 else
                 {
+                    // For production - still show detailed errors for now to diagnose issues
+                    app.UseDeveloperExceptionPage();
+                    // We'll also leave these as fallbacks
                     app.UseExceptionHandler("/Error/Error");
                     app.UseStatusCodePagesWithReExecute("/Error/{0}");
                     app.UseHsts();
+                    
+                    // Log that we're running in Production mode
+                    Log.Information("Application is running in Production environment with DeveloperExceptionPage enabled for diagnostics");
                 }
 
                 // Use the custom exception handling middleware

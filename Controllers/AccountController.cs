@@ -44,49 +44,90 @@ namespace SmartInventoryManagement.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                // Check if user with this email already exists
-                var existingUser = await _userManager.FindByEmailAsync(model.Email);
-                if (existingUser != null)
-                {
-                    // Delete the existing user first
-                    _logger.LogInformation("Deleting existing user with email: {Email}", model.Email);
-                    await _userManager.DeleteAsync(existingUser);
-                }
+                _logger.LogInformation("Registration attempt for email: {Email}", model.Email);
                 
-                var user = new ApplicationUser
+                if (ModelState.IsValid)
                 {
-                    UserName = model.Email,
-                    Email = model.Email,
-                    FirstName = model.FirstName,
-                    LastName = model.LastName,
-                    EmailConfirmed = true // Always set to true - no verification needed
-                };
+                    try
+                    {
+                        // Check if user with this email already exists
+                        var existingUser = await _userManager.FindByEmailAsync(model.Email ?? string.Empty);
+                        if (existingUser != null)
+                        {
+                            // Delete the existing user first
+                            _logger.LogInformation("Deleting existing user with email: {Email}", model.Email);
+                            await _userManager.DeleteAsync(existingUser);
+                        }
+                        
+                        var user = new ApplicationUser
+                        {
+                            UserName = model.Email,
+                            Email = model.Email,
+                            FirstName = model.FirstName,
+                            LastName = model.LastName,
+                            EmailConfirmed = true // Always set to true - no verification needed
+                        };
 
-                var result = await _userManager.CreateAsync(user, model.Password ?? string.Empty);
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation("User created a new account with password.");
-                    
-                    // Assign the User role to newly registered users
-                    await _userManager.AddToRoleAsync(user, "User");
-                    
-                    // No email confirmation is needed, completely skip this step
-                    _logger.LogInformation("Email confirmation is disabled - user {Email} automatically confirmed", user.Email);
+                        _logger.LogInformation("Creating new user with EmailConfirmed = true");
+                        var result = await _userManager.CreateAsync(user, model.Password ?? string.Empty);
+                        if (result.Succeeded)
+                        {
+                            _logger.LogInformation("User created a new account with password.");
+                            
+                            try {
+                                // Assign the User role to newly registered users
+                                _logger.LogInformation("Assigning 'User' role to new user");
+                                await _userManager.AddToRoleAsync(user, "User");
+                                
+                                // No email confirmation is needed, completely skip this step
+                                _logger.LogInformation("Email confirmation is disabled - user {Email} automatically confirmed", user.Email);
 
-                    // Auto sign-in the user after registration
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    _logger.LogInformation("User {Email} signed in automatically after registration", user.Email);
-                    
-                    return RedirectToAction("Index", "Home");
+                                // Auto sign-in the user after registration
+                                _logger.LogInformation("Attempting to sign in user automatically");
+                                await _signInManager.SignInAsync(user, isPersistent: false);
+                                _logger.LogInformation("User {Email} signed in automatically after registration", user.Email);
+                                
+                                return RedirectToAction("Index", "Home");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error during post-creation steps for user {Email}", model.Email);
+                                ModelState.AddModelError(string.Empty, "Account was created but there was an error signing you in. Please try logging in manually.");
+                            }
+                        }
+                        else
+                        {
+                            foreach (var error in result.Errors)
+                            {
+                                _logger.LogError("User registration error: {Error}", error.Description);
+                                ModelState.AddModelError(string.Empty, error.Description);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Unexpected error during user creation for {Email}", model.Email);
+                        ModelState.AddModelError(string.Empty, "An unexpected error occurred during registration. Please try again later.");
+                    }
                 }
-
-                foreach (var error in result.Errors)
+                else
                 {
-                    _logger.LogError("User registration error: {Error}", error.Description);
-                    ModelState.AddModelError(string.Empty, error.Description);
+                    _logger.LogWarning("Registration attempt failed due to invalid model state");
+                    foreach (var modelState in ModelState.Values)
+                    {
+                        foreach (var error in modelState.Errors)
+                        {
+                            _logger.LogWarning("ModelState error: {Error}", error.ErrorMessage);
+                        }
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception in Register action");
+                ModelState.AddModelError(string.Empty, "A system error occurred. Please try again later.");
             }
 
             return View(model);
