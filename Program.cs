@@ -75,7 +75,21 @@ namespace SmartInventoryManagement
                 // Configure to use SQLite instead of PostgreSQL
                 builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseSqlite(connectionString);
+                    try
+                    {
+                        Log.Information("Configuring database with connection string: {ConnectionString}", 
+                            connectionString.Substring(0, Math.Min(10, connectionString.Length)) + "...");
+                        
+                        options.UseSqlite(connectionString);
+                        Log.Information("Database context configured with SQLite");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Error configuring database context: {Message}", ex.Message);
+                        // Continue with default options - will be caught by error handling later
+                        options.UseSqlite("Data Source=SmartInventory_fallback.db");
+                        Log.Warning("Using fallback database configuration");
+                    }
                 });
 
                 // Configure identity for database reset
@@ -173,9 +187,10 @@ namespace SmartInventoryManagement
                 // Ensure the database is created and apply migrations
                 using (var scope = app.Services.CreateScope())
                 {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     try
                     {
+                        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        
                         // Create the database if it doesn't exist
                         Log.Information("Attempting to create database if it doesn't exist");
                         
@@ -188,37 +203,67 @@ namespace SmartInventoryManagement
                         }
                         catch (Exception connEx)
                         {
-                            Log.Error(connEx, "Error testing database connection");
+                            Log.Error(connEx, "Error testing database connection: {Message}", connEx.Message);
+                            // We'll handle this below
                         }
                         
-                        if (canConnect)
+                        try
                         {
-                            dbContext.Database.EnsureCreated();
-                            Log.Information("Database created or already exists");
-
-                            // Initialize roles and users using RoleInitializationService
+                            if (canConnect)
+                            {
+                                Log.Information("Ensuring database exists...");
+                                dbContext.Database.EnsureCreated();
+                                Log.Information("Database created or already exists");
+                            }
+                            else
+                            {
+                                Log.Warning("Cannot connect to database - skipping initialization");
+                            }
+                        }
+                        catch (Exception dbEx)
+                        {
+                            Log.Error(dbEx, "Failed to ensure database is created: {Message}", dbEx.Message);
+                        }
+                        
+                        // Proceed with role and user initialization regardless of database status
+                        // This way the app can run even if database setup fails
+                        Log.Information("Initializing application roles and users");
+                        try
+                        {
                             var roleInitService = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
                             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                             
+                            Log.Information("Initializing roles");
                             try
                             {
                                 await roleInitService.InitializeRolesAsync(roleManager);
-                                await roleInitService.InitializeAdminUserAsync(userManager);
+                                Log.Information("Roles initialized successfully");
                             }
                             catch (Exception roleEx)
                             {
-                                Log.Error(roleEx, "Error initializing roles or admin user");
+                                Log.Error(roleEx, "Failed to initialize roles: {Message}", roleEx.Message);
+                            }
+                            
+                            Log.Information("Initializing admin user");
+                            try
+                            {
+                                await roleInitService.InitializeAdminUserAsync(userManager);
+                                Log.Information("Admin user initialized successfully");
+                            }
+                            catch (Exception userEx)
+                            {
+                                Log.Error(userEx, "Failed to initialize admin user: {Message}", userEx.Message);
                             }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            Log.Warning("Cannot connect to database - skipping initialization");
+                            Log.Error(ex, "Error initializing roles or users: {Message}", ex.Message);
                         }
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(ex, "Error setting up database");
+                        Log.Error(ex, "Error setting up application: {Message}", ex.Message);
                     }
                 }
 

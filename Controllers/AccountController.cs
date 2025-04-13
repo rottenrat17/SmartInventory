@@ -46,21 +46,55 @@ namespace SmartInventoryManagement.Controllers
         {
             try
             {
-                _logger.LogInformation("Registration attempt for email: {Email}", model.Email);
+                _logger.LogInformation("Registration attempt starting for email: {Email}", model.Email);
                 
                 if (ModelState.IsValid)
                 {
                     try
                     {
+                        _logger.LogInformation("Model is valid, proceeding with registration");
+                        
                         // Check if user with this email already exists
-                        var existingUser = await _userManager.FindByEmailAsync(model.Email ?? string.Empty);
-                        if (existingUser != null)
+                        _logger.LogInformation("Checking if user already exists");
+                        ApplicationUser existingUser = null;
+                        try
                         {
-                            // Delete the existing user first
-                            _logger.LogInformation("Deleting existing user with email: {Email}", model.Email);
-                            await _userManager.DeleteAsync(existingUser);
+                            existingUser = await _userManager.FindByEmailAsync(model.Email ?? string.Empty);
+                            _logger.LogInformation("FindByEmailAsync completed, user exists: {Exists}", existingUser != null);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "ERROR during FindByEmailAsync: {Message}", ex.Message);
+                            // Continue with null existingUser
                         }
                         
+                        if (existingUser != null)
+                        {
+                            try
+                            {
+                                // Delete the existing user first
+                                _logger.LogInformation("Deleting existing user with email: {Email}", model.Email);
+                                var deleteResult = await _userManager.DeleteAsync(existingUser);
+                                if (!deleteResult.Succeeded)
+                                {
+                                    foreach (var error in deleteResult.Errors)
+                                    {
+                                        _logger.LogError("Error deleting existing user: {Error}", error.Description);
+                                    }
+                                    ModelState.AddModelError(string.Empty, "An account with this email already exists but could not be reset.");
+                                    return View(model);
+                                }
+                                _logger.LogInformation("Existing user deleted successfully");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Exception during user deletion: {Message}", ex.Message);
+                                ModelState.AddModelError(string.Empty, "Error processing existing account.");
+                                return View(model);
+                            }
+                        }
+
+                        _logger.LogInformation("Creating new ApplicationUser object");
                         var user = new ApplicationUser
                         {
                             UserName = model.Email,
@@ -70,16 +104,32 @@ namespace SmartInventoryManagement.Controllers
                             EmailConfirmed = true // Always set to true - no verification needed
                         };
 
-                        _logger.LogInformation("Creating new user with EmailConfirmed = true");
+                        _logger.LogInformation("About to call CreateAsync");
                         var result = await _userManager.CreateAsync(user, model.Password ?? string.Empty);
+                        
+                        _logger.LogInformation("CreateAsync completed, Success: {Success}", result.Succeeded);
                         if (result.Succeeded)
                         {
                             _logger.LogInformation("User created a new account with password.");
                             
-                            try {
+                            try 
+                            {
                                 // Assign the User role to newly registered users
                                 _logger.LogInformation("Assigning 'User' role to new user");
-                                await _userManager.AddToRoleAsync(user, "User");
+                                var roleResult = await _userManager.AddToRoleAsync(user, "User");
+                                if (!roleResult.Succeeded)
+                                {
+                                    foreach (var error in roleResult.Errors)
+                                    {
+                                        _logger.LogError("Error assigning role: {Error}", error.Description);
+                                    }
+                                    // Continue despite role assignment failure
+                                    _logger.LogWarning("Role assignment failed but continuing with login");
+                                }
+                                else
+                                {
+                                    _logger.LogInformation("Role assigned successfully");
+                                }
                                 
                                 // No email confirmation is needed, completely skip this step
                                 _logger.LogInformation("Email confirmation is disabled - user {Email} automatically confirmed", user.Email);
@@ -93,8 +143,11 @@ namespace SmartInventoryManagement.Controllers
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogError(ex, "Error during post-creation steps for user {Email}", model.Email);
+                                _logger.LogError(ex, "Error during post-creation steps for user {Email}: {Message}", model.Email, ex.Message);
+                                
+                                // Since user was created, offer login option
                                 ModelState.AddModelError(string.Empty, "Account was created but there was an error signing you in. Please try logging in manually.");
+                                return View("Login", new LoginViewModel { Email = model.Email });
                             }
                         }
                         else
@@ -108,8 +161,16 @@ namespace SmartInventoryManagement.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Unexpected error during user creation for {Email}", model.Email);
-                        ModelState.AddModelError(string.Empty, "An unexpected error occurred during registration. Please try again later.");
+                        _logger.LogError(ex, "Unexpected error during user creation for {Email}: {Message}, Stack: {Stack}", 
+                            model.Email, ex.Message, ex.StackTrace);
+                        
+                        if (ex.InnerException != null)
+                        {
+                            _logger.LogError("Inner exception: {Message}, Stack: {Stack}", 
+                                ex.InnerException.Message, ex.InnerException.StackTrace);
+                        }
+                        
+                        ModelState.AddModelError(string.Empty, $"Registration error: {ex.Message}");
                     }
                 }
                 else
@@ -126,8 +187,10 @@ namespace SmartInventoryManagement.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception in Register action");
-                ModelState.AddModelError(string.Empty, "A system error occurred. Please try again later.");
+                _logger.LogError(ex, "Unhandled exception in Register action: {Message}, Stack: {Stack}", 
+                    ex.Message, ex.StackTrace);
+                
+                ModelState.AddModelError(string.Empty, $"System error: {ex.Message}");
             }
 
             return View(model);

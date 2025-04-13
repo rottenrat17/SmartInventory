@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 namespace SmartInventoryManagement.Services
@@ -10,28 +11,60 @@ namespace SmartInventoryManagement.Services
     public class NoOpEmailService : IEmailService
     {
         private readonly ILogger<NoOpEmailService> _logger;
+        private static readonly ILogger<NoOpEmailService> _fallbackLogger;
 
-        public NoOpEmailService(ILogger<NoOpEmailService> logger)
+        // Static constructor ensures we always have a logger to use
+        static NoOpEmailService()
         {
-            _logger = logger;
+            var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
+            _fallbackLogger = loggerFactory.CreateLogger<NoOpEmailService>();
+        }
+
+        public NoOpEmailService(ILogger<NoOpEmailService> logger = null)
+        {
+            _logger = logger ?? _fallbackLogger;
             _logger.LogInformation("NoOpEmailService initialized - all emails will be logged but not sent");
         }
 
         public Task SendEmailAsync(string email, string subject, string message)
         {
-            _logger.LogInformation("Email NOT sent (NoOp): To: {Email}, Subject: {Subject}", email, subject);
+            try
+            {
+                _logger.LogInformation("Email NOT sent (NoOp): To: {Email}, Subject: {Subject}", 
+                    email ?? "null", subject ?? "null");
+            }
+            catch
+            {
+                // Swallow all exceptions - this service must never fail
+            }
             return Task.CompletedTask;
         }
 
         public Task SendEmailConfirmationAsync(string email, string confirmationLink)
         {
-            _logger.LogInformation("Confirmation email NOT sent (NoOp): To: {Email}", email);
+            try
+            {
+                _logger.LogInformation("Confirmation email NOT sent (NoOp): To: {Email}", 
+                    email ?? "null");
+            }
+            catch
+            {
+                // Swallow all exceptions - this service must never fail
+            }
             return Task.CompletedTask;
         }
 
         public Task SendPasswordResetAsync(string email, string resetLink)
         {
-            _logger.LogInformation("Password reset email NOT sent (NoOp): To: {Email}", email);
+            try
+            {
+                _logger.LogInformation("Password reset email NOT sent (NoOp): To: {Email}", 
+                    email ?? "null");
+            }
+            catch
+            {
+                // Swallow all exceptions - this service must never fail
+            }
             return Task.CompletedTask;
         }
     }
