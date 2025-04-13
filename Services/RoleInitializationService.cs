@@ -1,10 +1,20 @@
 using Microsoft.AspNetCore.Identity;
 using SmartInventoryManagement.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using SmartInventoryManagement.Database;
 
 namespace SmartInventoryManagement.Services
 {
     public class RoleInitializationService
     {
+        private readonly ApplicationDbContext _dbContext;
+
+        public RoleInitializationService(ApplicationDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
         public async Task InitializeRolesAsync(RoleManager<IdentityRole> roleManager)
         {
             // Create roles if they don't exist
@@ -46,6 +56,25 @@ namespace SmartInventoryManagement.Services
                 // If user exists but not in Admin role, add them to Admin role
                 await userManager.AddToRoleAsync(adminUser, "Admin");
             }
+        }
+
+        // This method is fixed to avoid the LINQ translation error
+        public async Task<List<ApplicationUser>> GetNonAdminUsersAsync(UserManager<ApplicationUser> userManager)
+        {
+            // First, get all users from the database
+            var allUsers = await _dbContext.Users.ToListAsync();
+            
+            // Then filter them in memory based on role
+            var nonAdminUsers = new List<ApplicationUser>();
+            foreach (var user in allUsers)
+            {
+                if (!await userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    nonAdminUsers.Add(user);
+                }
+            }
+            
+            return nonAdminUsers;
         }
     }
 } 

@@ -4,6 +4,7 @@ using SmartInventoryManagement.Database;
 using SmartInventoryManagement.Models;
 using SmartInventoryManagement.Services;
 using SmartInventoryManagement.Middleware;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using System.IO;
@@ -156,11 +157,17 @@ namespace SmartInventoryManagement
                     try
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        Log.Information("Attempting to create database if it doesn't exist");
                         dbContext.Database.EnsureCreated();
+                        Log.Information("Database created or already exists");
                         
                         var roleInitService = scope.ServiceProvider.GetRequiredService<RoleInitializationService>();
                         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                        
+                        Log.Information("STARTUP CONFIG: Email confirmation settings - RequireConfirmedAccount:{0}, RequireConfirmedEmail:{1}", 
+                            builder.Services.BuildServiceProvider().GetRequiredService<IOptions<IdentityOptions>>().Value.SignIn.RequireConfirmedAccount,
+                            builder.Services.BuildServiceProvider().GetRequiredService<IOptions<IdentityOptions>>().Value.SignIn.RequireConfirmedEmail);
                         
                         // Initialize roles and admin user
                         await roleInitService.InitializeRolesAsync(roleManager);
@@ -168,7 +175,7 @@ namespace SmartInventoryManagement
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(ex, "Error during initialization: {Message}", ex.Message);
+                        Log.Error(ex, "Error setting up database");
                     }
                 }
 
